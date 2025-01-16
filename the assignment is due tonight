@@ -1,0 +1,228 @@
+import pygame #Leon
+import sys
+
+
+pygame.init()
+
+
+WIDTH, HEIGHT = 800, 600
+
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+BROWN = (139, 69, 19)
+YELLOW = (255, 223, 0)
+GREEN = (34, 139, 34)
+CHALK_WHITE = (245, 245, 245)
+
+
+clock = pygame.time.Clock()
+font = pygame.font.Font(None, 36)
+title_font = pygame.font.Font(None, 72)
+
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("The Great Escape")
+
+
+player_size = 30
+teacher_size = 40
+table_size = 60
+
+
+player_pos = [WIDTH // 2, HEIGHT // 2]
+teacher_pos = [100, 100]
+tables = [
+    [150, 150], [300, 150], [450, 150], [600, 150],
+    [150, 300], [300, 300], [450, 300], [600, 300],
+    [150, 450], [300, 450], [450, 450], [600, 450],
+]
+
+player_speed = 5
+teacher_speed = 3
+initial_x = teacher_pos[0]
+initial_y = teacher_pos[1]
+timer = 75  
+
+game_over = False
+door_open = False
+
+
+START = 0
+PLAYING = 1
+GAME_OVER = 2
+END = 3
+
+game_state = START
+
+
+def draw_background():
+    screen.fill(YELLOW)
+    pygame.draw.rect(screen, BLACK, (50, 50, WIDTH - 100, 100))
+    pygame.draw.rect(screen, BROWN, (WIDTH // 2 - 50, HEIGHT - 120, 100, 50))
+
+def draw_player(position):
+    pygame.draw.circle(screen, BLUE, (position[0], position[1]), player_size // 2)
+
+def draw_teacher(position):
+    pygame.draw.circle(screen, RED, (position[0] + teacher_size // 2, position[1] + teacher_size // 2), teacher_size // 2)
+    pygame.draw.rect(screen, BLACK, (position[0] + teacher_size // 4, position[1] - 10, teacher_size // 2, 10))  
+
+def draw_tables():
+    for table in tables:
+        pygame.draw.rect(screen, BROWN, (table[0], table[1], table_size, table_size))
+
+def check_collision(pos1, size1, pos2, size2):
+    return (
+        pos1[0] < pos2[0] + size2 and
+        pos1[0] + size1 > pos2[0] and
+        pos1[1] < pos2[1] + size2 and
+        pos1[1] + size1 > pos2[1]
+    )
+
+def move_teacher_around_table(): #Wes
+    for table in tables:
+        if check_collision(teacher_pos, teacher_size, table, table_size):
+            if teacher_pos[0] < table[0]:
+                teacher_pos[0] -= teacher_speed
+            elif teacher_pos[0] > table[0] + table_size:
+                teacher_pos[0] += teacher_speed
+            elif teacher_pos[1] < table[1]:
+                teacher_pos[1] -= teacher_speed 
+            elif teacher_pos[1] > table[1] + table_size:
+                teacher_pos[1] += teacher_speed
+
+while True:  #Leon
+    screen.fill(WHITE)
+    
+    if game_state == START:
+        
+        
+        screen.fill(GREEN)
+        pygame.draw.rect(screen, BLACK, (50, 50, WIDTH - 100, HEIGHT - 100))
+        
+       
+        title_text = title_font.render("The Great Escape", True, CHALK_WHITE)
+        start_text = font.render("Press SPACE to Start", True, CHALK_WHITE)
+        creator_text = font.render("Created by: Leon & Wes", True, CHALK_WHITE)
+        
+        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 2 - 150))
+        screen.blit(start_text, (WIDTH // 2 - start_text.get_width() // 2, HEIGHT // 2))
+        screen.blit(creator_text, (WIDTH // 2 - creator_text.get_width() // 2, HEIGHT // 2 + 50))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                game_state = PLAYING
+                start_time = pygame.time.get_ticks()
+
+    elif game_state == PLAYING:
+        draw_background()
+
+    
+        for event in pygame.event.get():  #Wes
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+    
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP]:
+            player_pos[1] -= player_speed
+        if keys[pygame.K_DOWN]:
+            player_pos[1] += player_speed
+        if keys[pygame.K_LEFT]:
+            player_pos[0] -= player_speed
+        if keys[pygame.K_RIGHT]:
+            player_pos[0] += player_speed
+
+        player_pos[0] = max(0, min(WIDTH - player_size, player_pos[0]))
+        player_pos[1] = max(0, min(HEIGHT - player_size, player_pos[1]))
+
+
+        
+        if teacher_pos[0] < player_pos[0]: #Leon
+            teacher_pos[0] += teacher_speed
+        if teacher_pos[0] > player_pos[0]:
+            teacher_pos[0] -= teacher_speed
+        if teacher_pos[1] < player_pos[1]:
+            teacher_pos[1] += teacher_speed
+        if teacher_pos[1] > player_pos[1]:
+            teacher_pos[1] -= teacher_speed
+        
+
+        
+        if check_collision(player_pos, player_size, teacher_pos, teacher_size):
+            game_state = GAME_OVER
+
+        
+        for table in tables:  #Leon
+            if check_collision(player_pos, player_size, table, table_size):
+                player_pos[0] -= player_speed if keys[pygame.K_RIGHT] else -player_speed
+                player_pos[1] -= player_speed if keys[pygame.K_DOWN] else -player_speed
+                player_pos[0] += player_speed if keys[pygame.K_LEFT] else +player_speed
+                player_pos[1] += player_speed if keys[pygame.K_UP] else +player_speed
+            move_teacher_around_table() #Wes
+
+
+            
+        #Leon
+        elapsed_time = (pygame.time.get_ticks() - start_time) / 1000
+        remaining_time = max(0, timer - elapsed_time)
+
+        if remaining_time == 0:
+            door_open = True
+
+        timer_text = font.render(f"Time Left: {int(remaining_time)}", True, BLACK)
+        screen.blit(timer_text, (10, 10))
+
+        
+        draw_player(player_pos)
+        draw_teacher(teacher_pos)
+        draw_tables()
+
+        
+        if door_open:
+            escape_text = font.render("The door is open! Escape!", True, BLACK)
+            screen.blit(escape_text, (WIDTH // 2 - escape_text.get_width() // 2, 10))
+            if player_pos[0] > WIDTH - player_size - 10:
+                game_state = END
+
+    elif game_state == GAME_OVER:
+        game_over_text = font.render("You were caught!", True, RED)
+        retry_text = font.render("Press R to Retry", True, BLACK)
+        screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 50))
+        screen.blit(retry_text, (WIDTH // 2 - retry_text.get_width() // 2, HEIGHT // 2 + 20))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                player_pos = [WIDTH // 2, HEIGHT // 2]
+                teacher_pos = [100, 100]
+                start_time = pygame.time.get_ticks()
+                game_state = PLAYING
+
+    elif game_state == END:
+        end_text = font.render("You escaped! Congratulations!", True, BLUE)
+        retry_text = font.render("Press R to Play Again", True, BLACK)
+        screen.blit(end_text, (WIDTH // 2 - end_text.get_width() // 2, HEIGHT // 2 - 50))
+        screen.blit(retry_text, (WIDTH // 2 - retry_text.get_width() // 2, HEIGHT // 2 + 20))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                player_pos = [WIDTH // 2, HEIGHT // 2]
+                teacher_pos = [100, 100]
+                start_time = pygame.time.get_ticks()
+                game_state = PLAYING
+
+    pygame.display.flip()
+    clock.tick(60)
